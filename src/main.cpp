@@ -5,6 +5,19 @@
  * Copyright (c) 2021-2024 Takao Akaki. All right reserved
  */
 
+/*
+ * This file contains code under multiple licenses:
+ *
+ * - Portions based on code by Takao Akaki (c) 2021-2024, originally published under the MIT License.
+ *   See https://github.com/mongonta0716/stack-chan-tester
+ *
+ * - Portions based on code from M5CoreS3_FaceDetect, licensed under the GNU Lesser General Public License v2.1.
+ *   See https://github.com/ronron-gh/M5CoreS3_FaceDetect
+ *
+ * - Additional code written by Kazumasa Hirai, licensed under the MIT License.
+ *
+ * Please refer to the LICENSE files for full license texts.
+*/
 // ------------------------
 // ヘッダファイルのinclude
 // 
@@ -321,8 +334,8 @@ static void draw_face_boxes(fb_data_t *fb, std::list<dl::detect::result_t> *resu
         }
 
         //Serial.printf("x:%d y:%d w:%d h:%d c_x:%d c_y:%d dx:%d dy:%d new_x:%d new_y:%d\n", x, y, w, h, c_x, c_y, dx, dy, new_x, new_y);
-        //servo.moveXY(new_x, new_y, 200);
-        servo.moveXY(new_x, system_config.getServoInfo(AXIS_Y)->start_degree, 10);
+        servo.moveXY(new_x, new_y, 10);
+        //servo.moveXY(new_x, system_config.getServoInfo(AXIS_Y)->start_degree, 10);
 
         latest_x = new_x;
         latest_y = new_y;

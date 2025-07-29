@@ -2,34 +2,29 @@
 
 [日本語](README.md) | English
 
-stack-chan test application for pwm servo
+This is a program for Stack-chan using the M5Stack CoreS3. It performs face tracking using the built-in camera of the CoreS3.
 
 # Supported kits
- This kit was developed to check the operation of [Stack-Chan M5GoBottom version assembly kit](https This application was developed to check the operation of  [Stack-Chan M5GoBottom version kit](https://mongonta.booth.pm/) and to set up when assembling the kit. It can also be used for stacked-channel boards by changing the pin settings.
+This program has been tested only with the Stack-chan assembled using the  [Stack-Chan M5GoBottom version kit](https://mongonta.booth.pm/) distributed by Takao Akaki on BOOTH, combined with an M5Stack CoreS3 and an SG90 servo.
 
-This is only for ArduinoFramework and PWM servos.
-
-# Pin settings for servo
-CoreS3 uses Port.C(G18,G17), Core2 uses Port.C(G13,G14), Fire uses Port.A(G22,G21), and Core1 uses Port.C(G16,G17). If you want to use different pins, please rewrite the following section.
-
-https://github.com/mongonta0716/stack-chan-tester/blob/main/src/main.cpp#L7-L35
 
 # Adjustment of servo offset
 
-PWM servos of the SG90 series have many individual differences, and even if 90° is specified, the servo may shift slightly. In this case, please adjust the offset value below. (Set the angle (±) from 90°.)
-For the value to be adjusted, press and hold button A to enter the mode to adjust the offset, and find out the value that makes it straight.
+PWM servos like the SG90 often have individual differences, so even when set to 90°, the actual angle may be slightly off. In such cases, please adjust the angle settings defined in the following library:
 
-Please refer to Okimoku's [How to make a stack chan M5Burner version without disassembly [second half]](https://www.youtube.com/watch?v=YRQYYrQh0oE&t=329s) for how to adjust the offset.(Japanese)
+As a reference, the values used by the author of this program are:
+- _servo[AXIS_X].start_degree = 80;
+- _servo[AXIS_Y].start_degree = 105;
+- _servo[AXIS_Y].lower_limit = 65;
+- _servo[AXIS_Y].upper_limit = 105;
+These settings can be found in:
+- .pio/libdeps/m5stack-cores3/stackchan-arduino/src/Stackchan_system_config.cpp
+Note: This library is added via PlatformIO. Be aware that updates to the library may overwrite your custom settings with default values.
 
-The method of setting the adjusted value depends on the firmware to be written.
-
-- The one that rewrites the initial value in the source. <br>Rewrite the part where 90 is specified in the initial settings and rebuild.
-- Rewriting the configuration file. <br>[stackchan-bluetooth-simple](https://github.com/mongonta0716/stackchan-bluetooth-simple) specifies the offset in the configuration file.
-- The one to be configured on the web. <br>NoRi's [WebServer-with-stackchan](https://github.com/NoRi-230401/WebServer-with-stackchan) has the ability to configure on the web.
 
 # Usage
 * Button A: Rotates the X-axis and Y-axis servos to 90°. Use this button to rotate the servo 90° before fixing.
-* Button B: X-axis moves from 0 to 180, Y-axis moves from 90 to 50.<br>Double-click to toggle Grove's 5V (ExtPower) output ON/OFF; turn OFF when checking power feed from behind Stack-chan_Takao_Base.
+* Button B: Faces the head to the initial position and starts face tracking. Pressing Button A during tracking will stop it.<br>Double-click to toggle Grove's 5V (ExtPower) output ON/OFF; turn OFF when checking power feed from behind Stack-chan_Takao_Base.
 * Button C: Moves in random mode.
     * Button C: Stop random mode.
 * Button A long press: Enter the mode to adjust and examine the offset.
@@ -48,22 +43,26 @@ The screen is divided vertically into three parts: left: BtnA, center: BtnB, and
 - [M5Stack-Avatar](https://github.com/meganetaaan/m5stack-avatar) v0.8.0<br> Prior to v0.7.4, M5Unified is not supported, so M5 double definition errors occur at build time.
 - [ServoEasing](https://github.com/ArminJo/ServoEasing) v2.4.0
 - [ESP32Servo](https://github.com/madhephaestus/ESP32Servo) v0.11.0
+- [esp32-camera](https://github.com/espressif/esp32-camera)
 
-Please refer to the following blog for detailed instructions on how to add libraries in ArduinoIDE. (in Japanese)
-
-[ｽﾀｯｸﾁｬﾝ M5GoBottom版のファームウェアについて | M5Stack沼人の日記]( https://raspberrypi.mongonta.com/softwares-for-stackchan/)
 
 # How to build
 
-v0.1 was ArduinoIDE, but now it is intended to be built with PlatformIO.
+This program has only been tested with PlatformIO.
 
 # About stack chan
 Stack chan is [meganetaaan](https://github.com/meganetaaan) is an open source project.
 
 https://github.com/meganetaaan/stack-chan
 
+# References
+This program is based on the following projects:
+- [stack-chan-tester](https://github.com/mongonta0716/stack-chan-tester)
+- [M5CoreS3_FaceDetect](https://github.com/ronron-gh/M5CoreS3_FaceDetect)
+
 # author
- Takao Akaki
+ Kazumasa Hirai
 
 # LICENSE
  MIT
+ LGPL
