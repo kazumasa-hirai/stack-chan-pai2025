@@ -47,9 +47,12 @@ uint32_t mouth_wait = 2000;       // 通常時のセリフ入れ替え時間（m
 uint32_t last_mouth_millis = 0;   // セリフを入れ替えた時間
 bool core_port_a = false;         // Core1のPortAを使っているかどうか
 
-const char* lyrics[] = { "BtnA:MoveTo90  ", "BtnB:ServoTest  ", "BtnC:RandomMode  ", "BtnALong:AdjustMode"};  // 通常モード時に表示するセリフ
+const char* lyrics[] = { "BtnA:MoveTo90  ", "BtnB:FaceDetect  ", "BtnC:RandomMode  ", "BtnALong:AdjustMode"};  // 通常モード時に表示するセリフ
 const int lyrics_size = sizeof(lyrics) / sizeof(char*);  // セリフの数
 int lyrics_idx = 0;                                      // 表示するセリフ数用の変数
+
+int latest_x = 0;
+int latest_y = 0;
 
 #define TWO_STAGE 1 /*<! 1: detect by two-stage which is more accurate but slower(with keypoints). */
                     /*<! 0: detect by one-stage which is less accurate but faster(without keypoints). */
@@ -242,7 +245,7 @@ void check_heap_free_size(void){
 
 static void draw_face_boxes(fb_data_t *fb, std::list<dl::detect::result_t> *results, int face_id)
 {
-    int x, y, w, h;
+    int x, y, w, h, c_x, c_y, dx, dy, new_x, new_y;
     uint32_t color = FACE_COLOR_YELLOW;
     if (face_id < 0)
     {
@@ -280,13 +283,55 @@ static void draw_face_boxes(fb_data_t *fb, std::list<dl::detect::result_t> *resu
             h = fb->height - y;
         }
 
-        //Serial.printf("x:%d y:%d w:%d h:%d\n", x, y, w, h);
+        c_x = x + (w / 2);
+        c_y = y + (h / 2);
+
+        //dx = (((c_x - 160) * 23) / 320);
+        //dy = (((c_y - 120) * 23) / 320);
+
+        if(c_x - 160 > 5){
+          dx = 1;
+        }else if(c_x - 160 < -5){
+          dx = -1;
+        }else{
+          dx = 0;
+        }
+
+        if(c_y - 120 > 5){
+          dy = 1;
+        }else if(c_y - 120 < -5){
+          dy = -1;
+        }else{
+          dy = 0;
+        }
+
+        new_x = latest_x + dx;
+        new_y = latest_y + dy;
+
+        if(new_x > system_config.getServoInfo(AXIS_X)->upper_limit){
+          new_x = system_config.getServoInfo(AXIS_X)->upper_limit;
+        }else if (new_x < system_config.getServoInfo(AXIS_X)->lower_limit){
+          new_x = system_config.getServoInfo(AXIS_X)->lower_limit;
+        }
+
+        if(new_y > system_config.getServoInfo(AXIS_Y)->upper_limit){
+          new_y = system_config.getServoInfo(AXIS_Y)->upper_limit;
+        }else if (new_y < system_config.getServoInfo(AXIS_Y)->lower_limit){
+          new_y = system_config.getServoInfo(AXIS_Y)->lower_limit;
+        }
+
+        //Serial.printf("x:%d y:%d w:%d h:%d c_x:%d c_y:%d dx:%d dy:%d new_x:%d new_y:%d\n", x, y, w, h, c_x, c_y, dx, dy, new_x, new_y);
+        //servo.moveXY(new_x, new_y, 200);
+        servo.moveXY(new_x, system_config.getServoInfo(AXIS_Y)->start_degree, 10);
+
+        latest_x = new_x;
+        latest_y = new_y;
 
         //fb_gfx_fillRect(fb, x+10, y+10, w-20, h-20, FACE_COLOR_RED);  //モザイク
-        fb_gfx_drawFastHLine(fb, x, y, w, color);
-        fb_gfx_drawFastHLine(fb, x, y + h - 1, w, color);
-        fb_gfx_drawFastVLine(fb, x, y, h, color);
-        fb_gfx_drawFastVLine(fb, x + w - 1, y, h, color);
+        //fb_gfx_drawFastHLine(fb, x, y, w, color);
+        //fb_gfx_drawFastHLine(fb, x, y + h - 1, w, color);
+        //fb_gfx_drawFastVLine(fb, x, y, h, color);
+        //fb_gfx_drawFastVLine(fb, x + w - 1, y, h, color);
 
 #if TWO_STAGE
         // landmarks (left eye, mouth left, nose, right eye, mouth right)
@@ -294,14 +339,14 @@ static void draw_face_boxes(fb_data_t *fb, std::list<dl::detect::result_t> *resu
         for (j = 0; j < 10; j+=2) {
             x0 = (int)prediction->keypoint[j];
             y0 = (int)prediction->keypoint[j+1];
-            fb_gfx_fillRect(fb, x0, y0, 3, 3, color);
+            //fb_gfx_fillRect(fb, x0, y0, 3, 3, color);
         }
 #endif
     }
 }
 
 esp_err_t camera_capture_and_face_detect(){
-  Serial.println("camera_capture_and_face_detect");
+  //Serial.println("camera_capture_and_face_detect");
   //acquire a frame
   M5.In_I2C.release();
   camera_fb_t * fb = esp_camera_fb_get();
@@ -313,7 +358,7 @@ esp_err_t camera_capture_and_face_detect(){
 
 
   int face_id = 0;
-  Serial.println("HumanFaceDetect_start");
+  //Serial.println("HumanFaceDetect_start");
 
 #if TWO_STAGE
   HumanFaceDetectMSR01 s1(0.1F, 0.5F, 10, 0.2F);
@@ -324,7 +369,7 @@ esp_err_t camera_capture_and_face_detect(){
   HumanFaceDetectMSR01 s1(0.3F, 0.5F, 10, 0.2F);
   std::list<dl::detect::result_t> &results = s1.infer((uint16_t *)fb->buf, {(int)fb->height, (int)fb->width, 3});
 #endif
-  Serial.println("HumanFaceDetect_end");
+  //Serial.println("HumanFaceDetect_end");
   if (results.size() > 0) {
       //Serial.printf("Face detected : %d\n", results.size());
 
@@ -336,24 +381,24 @@ esp_err_t camera_capture_and_face_detect(){
       rfb.format = FB_RGB565;
 
       draw_face_boxes(&rfb, &results, face_id);
-      Serial.println("draw_face_boxes_end");
+      //Serial.println("draw_face_boxes_end");
   }
 
 
   //replace this with your own function
   //process_image(fb->width, fb->height, fb->format, fb->buf, fb->len);
-  M5.Display.startWrite();
-  M5.Display.setAddrWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
-  M5.Display.writePixels((uint16_t*)fb->buf, int(fb->len / 2));
-  M5.Display.endWrite();
+  //M5.Display.startWrite();
+  //M5.Display.setAddrWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
+  //M5.Display.writePixels((uint16_t*)fb->buf, int(fb->len / 2));
+  //M5.Display.endWrite();
   
-  Serial.println("M5_Display_end");
+  //Serial.println("M5_Display_end");
   //Serial.println("<heap size before fb return>");  
   //check_heap_free_size();
 
   //return the frame buffer back to the driver for reuse
   esp_camera_fb_return(fb);
-  Serial.println("esp_camera_fb_return");
+  //Serial.println("esp_camera_fb_return");
 
   //Serial.println("<heap size after fb return>");  
   //check_heap_free_size();
@@ -362,17 +407,20 @@ esp_err_t camera_capture_and_face_detect(){
 }
 
 void camera_capture_and_face_detect_loop(){
-  Serial.println("loop_start");
+  //Serial.println("loop_start");
+  servo.moveXY(system_config.getServoInfo(AXIS_X)->start_degree, system_config.getServoInfo(AXIS_Y)->start_degree, 2000);  // サーボを初期位置へ変更
+  latest_x = system_config.getServoInfo(AXIS_X)->start_degree;
+  latest_y = system_config.getServoInfo(AXIS_Y)->start_degree;
   for (;;) {
     M5.update();
-    if (M5.BtnB.wasPressed()) {
+    if (M5.BtnA.wasPressed()) {
       // ランダムモードを抜ける処理。(loop()に戻ります。)
-      Serial.println("break");
+      //Serial.println("break");
       break;
     }
     camera_capture_and_face_detect();
   }
-  Serial.println("loop_end");
+  //Serial.println("loop_end");
 }
 
 // ------------------------------------------------------------------
